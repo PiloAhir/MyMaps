@@ -7,32 +7,37 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
         with:
-          node-version: 20
+          distribution: 'temurin'
+          java-version: '17'
 
-      - name: Generate Android App Source
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build Web Assets & Project
         run: |
           mkdir -p www
           cp index.html www/
           npm init -y
-          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npm install @capacitor/core@5.7.4 @capacitor/cli@5.7.4 @capacitor/android@5.7.4
           npx cap init "MyMaps" "com.pilo.mymaps" --web-dir www
           npx cap add android
 
-      - name: Build APK with Docker Container
-        uses: docker://mingc/android-build-box:latest
-        with:
-          entrypoint: /bin/bash
-          args: -c "cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon"
+      - name: Accept Android Licenses & Build APK
+        run: |
+          yes | sdkmanager --licenses || true
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
 
-      - name: Upload Finished APK
+      - name: Upload Output APK
         uses: actions/upload-artifact@v4
         with:
           name: Bharat-Offline-Map-APK
